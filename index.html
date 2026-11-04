@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Sprite Editor</title>
+<meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="manifest.json">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100dvh;overflow:hidden;background:#0d1117;color:#c9d1d9;
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:13px;
+  display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+header{height:44px;background:#161b22;border-bottom:1px solid #30363d;
+  display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:10}
+.brand{font-size:14px;font-weight:bold;color:#3fb950;letter-spacing:.5px}
+header .spacer{flex:1}
+header button{background:#21262d;color:#c9d1d9;padding:6px 12px;
+  border:1px solid #30363d;border-radius:6px;font-size:12px;font-weight:500;transition:all .15s}
+header button:hover{background:#30363d;border-color:#484f58}
+header button.primary{background:#238636;border-color:#2ea043;color:#fff}
+header button.primary:hover{background:#2ea043}
+header button.success{background:#2ea043;border-color:#3fb950;color:#fff}
+header button.success:hover{background:#3fb950}
+header .status{font-size:11px;color:#8b949e;padding-left:12px;border-left:1px solid #30363d}
+
+#toolbar{background:#161b22;border-bottom:1px solid #30363d;
+  display:flex;padding:8px 12px;gap:12px;flex-wrap:wrap;flex-shrink:0;z-index:9}
+.toolbar-section{display:flex;flex-direction:column;gap:6px}
+.toolbar-section.grow{flex:1;min-width:0}
+.section-label{font-size:10px;color:#8b949e;letter-spacing:1.2px;font-weight:600}
+.tool-buttons{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.tool-btn{background:#21262d;color:#c9d1d9;padding:6px 10px;
+  border:1px solid #30363d;border-radius:5px;font-size:11px;transition:all .15s;white-space:nowrap}
+.tool-btn.active{background:#1f6feb;border-color:#388bfd;color:#fff}
+.tool-btn:hover:not(.active):not(.disabled){background:#30363d}
+.tool-btn.disabled{opacity:.4;cursor:not-allowed}
+#zoomLabel{padding:6px 4px;font-family:monospace;font-size:11px;color:#8b949e;
+  min-width:44px;text-align:center}
+.property-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:11px}
+.property-row label{display:flex;align-items:center;gap:4px;color:#8b949e}
+.property-row input[type=number]{width:56px;background:#0d1117;border:1px solid #30363d;
+  color:#c9d1d9;padding:4px 6px;border-radius:4px;font-size:11px;font-family:monospace}
+.property-row input[type=number]:focus{outline:none;border-color:#1f6feb}
+.property-row select{background:#0d1117;border:1px solid #30363d;color:#c9d1d9;
+  padding:4px 6px;border-radius:4px;font-size:11px}
+.property-row input[type=checkbox]{accent-color:#3fb950;margin-right:2px}
+.preset{background:#21262d;border:1px solid #30363d;color:#c9d1d9;
+  padding:3px 8px;border-radius:4px;font-size:10px;font-family:monospace}
+.preset:hover{background:#30363d}
+.action-buttons{display:flex;gap:6px;flex-direction:column}
+.action-buttons button{padding:8px 14px;border-radius:6px;font-size:11px;
+  font-weight:600;transition:all .15s;border:1px solid transparent}
+.action-buttons button#btnPreview{background:#21262d;border-color:#30363d;color:#c9d1d9}
+.action-buttons button#btnPreview:hover:not(:disabled){background:#30363d}
+.action-buttons button#btnAdd{background:#238636;border-color:#2ea043;color:#fff}
+.action-buttons button#btnAdd:hover:not(:disabled){background:#2ea043}
+.action-buttons button:disabled{opacity:.4;cursor:not-allowed}
+
+#canvasArea{flex:1;background:#0d1117;display:flex;flex-direction:column;
+  overflow:hidden;position:relative;min-height:0}
+#sourceTabs{display:flex;background:#161b22;border-bottom:1px solid #30363d;
+  padding:0 8px;gap:2px;overflow-x:auto;flex-shrink:0}
+#sourceTabs:empty{display:none}
+.source-tab{padding:8px 14px;font-size:11px;color:#8b949e;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;position:relative;user-select:none}
+.source-tab:hover{color:#c9d1d9}
+.source-tab.active{color:#58a6ff;border-bottom-color:#1f6feb}
+.source-tab .close{display:inline-block;margin-left:6px;opacity:.5;font-size:14px;line-height:1;padding:0 2px}
+.source-tab .close:hover{opacity:1;color:#f85149}
+
+#canvasWrap{flex:1;overflow:auto;padding:40px;position:relative;
+  background:repeating-conic-gradient(#0d1117 0 25%,#161b22 0 50%) 0 0/24px 24px;
+  display:flex;-webkit-overflow-scrolling: touch;}
+#sourceCanvas{display:block;image-rendering:pixelated;box-shadow:0 0 0 1px #30363d;flex-shrink:0;margin:auto}
+#emptyState{color:#484f58;text-align:center;padding:40px;font-size:13px;margin:auto}
+#emptyState .big{font-size:48px;margin-bottom:12px;opacity:.5}
+
+#bottomPanel{height:280px;background:#161b22;border-top:1px solid #30363d;
+  display:flex;flex-direction:column;flex-shrink:0;z-index:10}
+.bottom-tabs{display:flex;background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0;overflow-x:auto}
+.bottom-tabs button{padding:10px 16px;font-size:11px;color:#8b949e;
+  border-bottom:2px solid transparent;transition:.15s;font-weight:600;white-space:nowrap}
+.bottom-tabs button.active{color:#58a6ff;border-bottom-color:#1f6feb}
+.bottom-tabs button:not(.active):not(:disabled):hover{color:#c9d1d9}
+.bottom-tabs button:disabled{opacity:.4;cursor:not-allowed}
+.bottom-tabs .spacer{flex:1}
+.bottom-tabs .info{padding:10px 16px;font-size:11px;color:#8b949e;display:flex;align-items:center}
+
+#libraryWrap{flex:1;overflow-y:auto;padding:12px}
+#library{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px}
+.lib-card{background:#0d1117;border:2px solid #30363d;border-radius:6px;
+  padding:4px;cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+.lib-card:hover{border-color:#58a6ff;transform:translateY(-1px)}
+.lib-card.selected{border-color:#3fb950;background:#0f2419}
+.lib-card img{width:100%;height:60px;object-fit:contain;image-rendering:pixelated;
+  background:repeating-conic-gradient(#161b22 0 25%,#21262d 0 50%) 0 0/8px 8px;border-radius:3px;display:block}
+.lib-card .name{font-size:9px;color:#8b949e;margin-top:3px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center;font-family:monospace}
+.lib-card .dim{font-size:8px;color:#484f58;text-align:center;font-family:monospace}
+.lib-card .del{position:absolute;top:3px;right:3px;width:18px;height:18px;
+  background:rgba(248,81,73,.9);border-radius:4px;color:#fff;font-size:11px;
+  display:none;align-items:center;justify-content:center;padding:0;line-height:1}
+.lib-card:hover .del{display:flex}
+.lib-empty{grid-column:1/-1;text-align:center;padding:30px;color:#484f58;font-size:12px}
+
+#animateWrap{display:none;flex-direction:column;padding:10px;gap:8px;
+  background:#0d1117;border-bottom:1px solid #30363d;flex-shrink:0}
+.anim-top-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#161b22;padding:8px;border-radius:6px;border:1px solid #30363d}
+.anim-top-bar select{background:#21262d;border:1px solid #30363d;color:#fff;padding:6px;border-radius:4px;font-size:12px}
+.anim-top-bar input[type=number]{width:50px;background:#21262d;border:1px solid #30363d;color:#fff;padding:6px;border-radius:4px;font-size:12px;text-align:center}
+.anim-top-bar button{background:#1f6feb;color:#fff;border:none;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:bold}
+.anim-top-bar button.danger{background:#da3633}
+#animFrames{display:flex;gap:8px;overflow-x:auto;padding:8px;background:#161b22;border-radius:6px;border:1px solid #30363d;min-height:70px;align-items:center}
+.anim-frame{position:relative;width:56px;height:56px;background:#0d1117;border:1px solid #30363d;border-radius:4px;flex-shrink:0;cursor:pointer}
+.anim-frame img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+.anim-frame .rm{position:absolute;top:-5px;right:-5px;background:#da3633;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #161b22}
+
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.modal.show{display:flex}
+.modal .box{background:#161b22;border:1px solid #30363d;border-radius:10px;
+  padding:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.8)}
+.modal h2{font-size:15px;color:#58a6ff;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal .field{margin-bottom:12px}
+.modal label{display:block;font-size:11px;color:#8b949e;margin-bottom:5px;font-weight:500}
+.modal input[type=text],.modal input[type=number],.modal select{width:100%;background:#0d1117;border:1px solid #30363d;
+  color:#c9d1d9;padding:8px 10px;border-radius:6px;font-size:13px;font-family:monospace}
+.modal input:focus,.modal select:focus{outline:none;border-color:#1f6feb}
+.modal .preview-area{background:#0d1117;border:1px solid #30363d;border-radius:6px;
+  padding:12px;display:flex;gap:16px;justify-content:center;align-items:flex-end;
+  min-height:120px;background-image:repeating-conic-gradient(#0d1117 0 25%,#161b22 0 50%);
+  background-size:16px 16px;flex-wrap:wrap;overflow:auto}
+.modal .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal .actions button{padding:8px 18px;border-radius:6px;font-size:12px;font-weight:600;transition:.15s}
+.modal .actions button.cancel{background:#21262d;color:#c9d1d9;border:1px solid #30363d}
+.modal .actions button.cancel:hover{background:#30363d}
+.modal .actions button.ok{background:#238636;color:#fff;border:1px solid #2ea043}
+.modal .actions button.ok:hover{background:#2ea043}
+
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);
+  background:#1f6feb;color:#fff;padding:8px 20px;border-radius:6px;
+  font-size:12px;font-weight:600;opacity:0;transition:opacity .3s;
+  pointer-events:none;z-index:200;box-shadow:0 4px 16px rgba(31,111,235,.4);max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+#toast.error{background:#da3633;box-shadow:0 4px 16px rgba(218,54,51,.4)}
+#toast.success{background:#238636;box-shadow:0 4px 16px rgba(35,134,54,.4)}
+
+@media (max-width:820px){
+  #toolbar{padding:6px;gap:6px;overflow-x:auto;flex-wrap:nowrap}
+  .toolbar-section{flex-shrink:0}
+  .toolbar-section.grow{min-width:380px}
+  .property-row input[type=number]{width:46px}
+  header .status{display:none}
+  header button{padding:5px 8px;font-size:11px}
+  header .brand{font-size:12px}
+  #bottomPanel{height:240px}
+  #library{grid-template-columns:repeat(auto-fill,minmax(64px,1fr))}
+  .lib-card img{height:46px}
+  #canvasWrap{padding:20px}
+}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+</head>
+<body>
+
+<header>
+  <div class="brand">🎨 Sprite Editor</div>
+  <div class="spacer"></div>
+  <button id="btnLoadImg" class="primary">📁 Load</button>
+  <button id="btnImportJson" title="Import JSON koordinat">📥 Import</button>
+  <button id="btnSave" title="Ctrl+S">💾 Save</button>
+  <button id="btnOpen" title="Ctrl+O">📂 Open</button>
+  <button id="btnExport" class="success" title="Export Spritesheet/Data">⬇️ Export</button>
+  <div class="status" id="status">Siap</div>
+</header>
+
+<div id="toolbar">
+  <div class="toolbar-section">
+    <div class="section-label">TOOLS</div>
+    <div class="tool-buttons">
+      <button class="tool-btn active" id="btnModeCrop">✂️ Crop</button>
+      <button class="tool-btn" id="btnModePan">👆 Geser</button>
+      <button class="tool-btn" id="btnAutoCrop" title="Deteksi otomatis area gambar di dalam kotak crop">✨ Auto-Crop</button>
+    </div>
+  </div>
+  <div class="toolbar-section">
+    <div class="section-label">ZOOM</div>
+    <div class="tool-buttons">
+      <button class="tool-btn" id="btnZoomOut" title="Zoom out">−</button>
+      <button class="tool-btn" id="btnZoomFit" title="Fit to viewport">Fit</button>
+      <button class="tool-btn" id="btnZoom100" title="1 pixel = 1 screen pixel">1:1</button>
+      <button class="tool-btn" id="btnZoomIn" title="Zoom in">+</button>
+      <span id="zoomLabel">100%</span>
+    </div>
+  </div>
+  <div class="toolbar-section grow">
+    <div class="section-label">PROPERTIES</div>
+    <div class="property-row">
+      <label>X <input type="number" id="cropX" value="0" min="0"></label>
+      <label>Y <input type="number" id="cropY" value="0" min="0"></label>
+      <label>W <input type="number" id="cropW" value="64" min="1"></label>
+      <label>H <input type="number" id="cropH" value="64" min="1"></label>
+    </div>
+    <div class="property-row">
+      <span style="color:#8b949e">Preset:</span>
+      <button class="preset" data-size="16">16</button>
+      <button class="preset" data-size="32">32</button>
+      <button class="preset" data-size="48">48</button>
+      <button class="preset" data-size="64">64</button>
+      <button class="preset" data-size="128">128</button>
+    </div>
+  </div>
+  <div class="toolbar-section">
+    <div class="section-label">ACTIONS</div>
+    <div class="action-buttons">
+      <button id="btnPreview" disabled>👁️ Preview</button>
+      <button id="btnAdd" disabled>➕ Tambah</button>
+    </div>
+  </div>
+</div>
+
+<div id="canvasArea">
+  <div id="sourceTabs"></div>
+  <div id="canvasWrap">
+    <div id="emptyState">
+      <div class="big">🖼️</div>
+      <div>Klik <b>Load</b> untuk memuat gambar sumber.<br>Bisa muat beberapa gambar sekaligus.</div>
+    </div>
+    <canvas id="sourceCanvas" style="display:none"></canvas>
+  </div>
+</div>
+
+<div id="bottomPanel">
+  <div class="bottom-tabs">
+    <button class="active" id="tabLib">📚 Library (<span id="libCount">0</span>)</button>
+    <button id="tabSheet">📦 Sheet</button>
+    <button id="tabAnimate">🎬 Animate</button>
+    <div class="spacer"></div>
+    <button id="btnBulkRename" style="color:#c9d1d9;background:#21262d;margin:4px;border-radius:4px;padding:4px 10px;border:1px solid #30363d;">✏️ Rename</button>
+    <div class="info" id="libraryInfo">Belum ada sprite</div>
+  </div>
+  
+  <div id="animateWrap">
+      <div class="anim-top-bar">
+        <select id="animSelect"></select>
+        <button id="btnNewAnim">+ Baru</button>
+        <button id="btnDelAnim" class="danger">Hapus</button>
+        <span style="color:#8b949e; font-size:11px;">FPS:</span>
+        <input type="number" id="animFps" value="8" min="1" max="30">
+        <button id="btnPlayAnim" style="background:#2ea043">▶️ Putar</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:stretch; flex:1; min-height: 80px;">
+        <!-- Layar Live Preview -->
+        <div style="display:flex; flex-direction:column; gap:5px; flex-shrink:0;">
+          <span style="font-size:10px; color:#8b949e; letter-spacing:1px;">LIVE PREVIEW</span>
+          <div style="width:80px; height:80px; background:repeating-conic-gradient(#0d1117 0 25%,#161b22 0 50%); background-size:16px 16px; border:1px solid #30363d; border-radius:6px; display:flex; justify-content:center; align-items:center; overflow:hidden;">
+            <img id="animLivePreview" style="max-width:100%; max-height:100%; image-rendering:pixelated; display:none;">
+            <span id="animLivePlaceholder" style="font-size:10px; color:#484f58; text-align:center;">Klik Play<br>untuk cek</span>
+          </div>
+        </div>
+        
+        <!-- Frame List -->
+        <div id="animFrames" style="flex:1;"></div>
+      </div>
+  </div>
+
+  <div id="libraryWrap">
+    <div id="library"><div class="lib-empty">Belum ada sprite. Crop dan tambah dari gambar sumber.</div></div>
+  </div>
+</div>
+
+<!-- MODAL BULK RENAME -->
+<div class="modal" id="modalRename">
+  <div class="box">
+    <h2>✏️ Rename Massal</h2>
+    <div class="field">
+      <label>Prefix / Nama Dasar</label>
+      <input type="text" id="renamePrefix" value="char_" placeholder="mis: walk_">
+    </div>
+    <div class="field">
+      <label>Mulai dari Angka</label>
+      <input type="number" id="renameStart" value="1" min="1">
+    </div>
+    <div class="field">
+      <label>Gunakan Padding Nol?</label>
+      <select id="renamePad">
+        <option value="0">Tidak (1, 2, 3)</option>
+        <option value="2" selected>Ya (01, 02)</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="cancel" onclick="document.getElementById('modalRename').classList.remove('show')">Batal</button>
+      <button class="ok" id="btnDoRename">✏️ Ubah Nama</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXPORT -->
+<div class="modal" id="modalExport">
+  <div class="box">
+    <h2>⬇️ Export Sprite</h2>
+    <div class="field">
+      <label>Format Export:</label>
+      <select id="expFormat">
+        <option value="png">1. PNG Spritesheet saja (.zip)</option>
+        <option value="json" selected>2. PNG + JSON Universal (.zip)</option>
+        <option value="base64">3. JSON Base64 (📋 Salin ke Clipboard)</option>
+        <option value="legacy">4. JS File (Legacy)</option>
+      </select>
+    </div>
+    <div class="field" id="fieldBase64Size" style="display:none; background:#1a1a1a; padding:10px; border-radius:6px; border:1px solid #333;">
+      <label style="color:#3fb950; font-weight:bold;">Kompresi Base64</label>
+      <select id="expBase64Size">
+        <option value="32">Perkecil jadi 32px</option>
+        <option value="64" selected>Perkecil jadi 64px</option>
+        <option value="128">Perkecil jadi 128px</option>
+        <option value="0">Ukuran Asli</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Nama File (Tanpa Ekstensi)</label>
+      <input type="text" id="expName" value="sprites">
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label>Preview Spritesheet (Klik gambar untuk lihat koordinat):</label>
+      <div class="preview-area" style="align-items:flex-start; justify-content:flex-start; padding:0; border:none; position:relative;">
+        <canvas id="expCanvas" style="max-width:100%; image-rendering:pixelated; border:1px dashed #555; cursor:crosshair;"></canvas>
+        <div id="coordTooltip" style="position:absolute; background:rgba(0,0,0,.9); border:1px solid #3fb950; color:#3fb950; padding:4px 8px; border-radius:4px; font-family:monospace; font-size:11px; pointer-events:none; display:none; z-index:10;"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="cancel" onclick="document.getElementById('modalExport').classList.remove('show')">Batal</button>
+      <button class="ok" id="btnDoExport">⬇️ Download</button>
+    </div>
+  </div>
+</div>
+
+<!-- === MODAL VIEW SPRITE === -->
+<div class="modal" id="modalViewSprite">
+  <div class="box" style="text-align:center; max-width: 400px;">
+    <h2 id="viewSpriteName" style="justify-content:center">Nama Sprite</h2>
+    <div style="background:repeating-conic-gradient(#0d1117 0 25%,#161b22 0 50%); background-size:16px 16px; padding:10px; border:1px solid #30363d; border-radius:6px; display:inline-block; min-width:200px;">
+      <img id="viewSpriteImg" style="max-width:100%; max-height:30vh; image-rendering:pixelated; display:block; margin:auto; cursor:crosshair;">
+    </div>
+    
+    <!-- Coordinate Box (Kode Koordinat Universal) -->
+    <div id="spriteCoordBox" style="display:none; margin-top:12px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid #30363d; text-align:left;">
+      <div style="font-size:11px; color:#8b949e; margin-bottom:6px;">📐 Koordinat Sprite (Universal JSON):</div>
+      <pre id="coordCode" style="background:#161b22; padding:8px; border-radius:4px; color:#3fb950; font-family:monospace; font-size:11px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; margin-bottom:6px; max-height:100px;"></pre>
+      <button id="btnCopyCoord" style="width:100%; background:#1f6feb; color:#fff; border-radius:4px; padding:8px; font-size:12px; font-weight:600;">📋 Salin Koordinat</button>
+    </div>
+    
+    <div style="margin-top:15px; border-top:1px solid #30363d; padding-top:15px;">
+      
+      <!-- Tombol Utama -->
+      <div class="actions" id="mainActionBtns" style="justify-content:center; margin-bottom:10px; display:flex;">
+        <button class="cancel" id="btnBgRemove" style="background:#da3633; color:white; border-color:#f85149; flex:1;">🧹 Hapus Background</button>
+        <button class="cancel" id="btnColorReplace" style="background:#1f6feb; color:white; border-color:#388bfd; flex:1;">🎨 Ganti Warna</button>
+      </div>
+      
+      <!-- Panel Hapus Background -->
+      <div id="bgRemoveControls" style="display:none; margin-top:10px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid #30363d;">
+        <p style="font-size:11px; color:#8b949e; margin-bottom:10px;">Klik pada area background untuk menghapusnya.</p>
+        <div style="display:flex; gap:5px; align-items:center;">
+          <input type="range" id="bgTolerance" min="0" max="255" value="30" style="flex:1;">
+          <span style="font-size:10px; color:#aaa; width:60px;">Toleransi</span>
+        </div>
+        <div class="actions" style="justify-content:center; margin-top:10px;">
+          <button class="cancel" id="btnCancelBg" style="background:#21262d;">Batal</button>
+          <button class="ok" id="btnSaveBgRemove" style="background:#2ea043;">💾 Simpan</button>
+        </div>
+      </div>
+
+      <!-- Panel Ganti Warna -->
+      <div id="colorReplaceControls" style="display:none; margin-top:10px; background:#0d1117; padding:10px; border-radius:6px; border:1px solid #30363d;">
+        <p style="font-size:11px; color:#8b949e; margin-bottom:10px;">Klik area spesifik (misal: celana) untuk diubah. Warna akan diganti hanya pada area yang tersambung.</p>
+        
+        <div id="colorReplaceList" style="max-height:120px; overflow-y:auto; margin-bottom:10px;"></div>
+        
+        <div style="display:flex; gap:5px; align-items:center; margin-bottom:10px;">
+          <input type="range" id="colorTolerance" min="0" max="100" value="15" style="flex:1;">
+          <span style="font-size:10px; color:#aaa; width:80px;">Toleransi: <span id="colorTolVal">15</span></span>
+        </div>
+
+        <!-- Custom RGBA Picker (Tersembunyi, muncul saat klik kotak warna target) -->
+        <div id="rgbaPicker" style="display:none; background:#161b22; padding:10px; border-radius:6px; border:1px solid #30363d; margin-bottom:10px; text-align:left;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+            <span style="font-size:11px; color:#fff;">Pilih Warna Target (RGBA)</span>
+            <div id="rgbaPreview" style="width:20px; height:20px; border-radius:3px; border:1px solid #555; background:rgba(255,0,0,1)"></div>
+          </div>
+          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
+            <span style="font-size:10px; color:#f85149; width:12px;">R</span>
+            <input type="range" id="slideR" min="0" max="255" value="255" style="flex:1;">
+            <input type="number" id="numR" min="0" max="255" value="255" style="width:40px; background:#0d1117; border:1px solid #30363d; color:#fff; font-size:10px; text-align:center;">
+          </div>
+          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
+            <span style="font-size:10px; color:#3fb950; width:12px;">G</span>
+            <input type="range" id="slideG" min="0" max="255" value="0" style="flex:1;">
+            <input type="number" id="numG" min="0" max="255" value="0" style="width:40px; background:#0d1117; border:1px solid #30363d; color:#fff; font-size:10px; text-align:center;">
+          </div>
+          <div style="display:flex; align-items:center; gap:5px; margin-bottom:3px;">
+            <span style="font-size:10px; color:#58a6ff; width:12px;">B</span>
+            <input type="range" id="slideB" min="0" max="255" value="0" style="flex:1;">
+            <input type="number" id="numB" min="0" max="255" value="0" style="width:40px; background:#0d1117; border:1px solid #30363d; color:#fff; font-size:10px; text-align:center;">
+          </div>
+          <div style="display:flex; align-items:center; gap:5px; margin-bottom:8px;">
+            <span style="font-size:10px; color:#aaa; width:12px;">A</span>
+            <input type="range" id="slideA" min="0" max="255" value="255" style="flex:1;">
+            <input type="number" id="numA" min="0" max="255" value="255" style="width:40px; background:#0d1117; border:1px solid #30363d; color:#fff; font-size:10px; text-align:center;">
+          </div>
+          <button class="ok" id="btnClosePicker" style="width:100%; font-size:11px; padding:5px;">Selesai Pilih Warna</button>
+        </div>
+
+        <div class="actions" style="justify-content:center; margin-top:10px;">
+          <button class="cancel" id="btnCancelColor" style="background:#21262d;">Batal</button>
+          <button class="ok" id="btnSaveColorReplace" style="background:#2ea043;">💾 Simpan Varian</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" style="justify-content:center; margin-top:15px;" id="closeModalRow">
+      <button class="cancel" id="btnCloseViewSprite">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PREVIEW CROP -->
+<div class="modal" id="modalPreview">
+  <div class="box">
+    <h2>👁️ Preview & Tambah</h2>
+    <div class="field">
+      <label>Nama sprite:</label>
+      <input type="text" id="previewName" placeholder="mis: kuda_1">
+    </div>
+    <div class="field">
+      <label>Pratinjau ukuran:</label>
+      <div class="preview-area" id="previewArea"></div>
+    </div>
+    <div class="field">
+      <label>Penempatan di cell game (bottom-center):</label>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <select id="cellSize" style="width:auto;min-width:100px">
+          <option value="16">16×16</option>
+          <option value="32" selected>32×32</option>
+          <option value="48">48×48</option>
+          <option value="64">64×64</option>
+          <option value="128">128×128</option>
+        </select>
+        <div id="cellPreview" style="display:inline-block"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="cancel" id="btnPreviewCancel">Batal</button>
+      <button class="ok" id="btnPreviewAdd">➕ Tambah ke Library</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+<input type="file" id="fileOpen" accept=".json" style="display:none">
+<input type="file" id="fileImportJson" accept=".json" style="display:none">
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+const S = {
+  sources: [],
+  activeSourceId: null,
+  crop: { x: 0, y: 0, w: 64, h: 64 },
+  drag: null,
+  sprites: [],
+  animations: [],
+  activeAnimId: null,
+  selectedSpriteId: null,
+  nextSpriteId: 1,
+  nextAnimId: 1,
+  nextSourceId: 1,
+  autoTrim: true,
+  zoom: 1,
+  mode: 'crop',
+  
+  bgRemoveActive: false,
+  bgTargetRGBA: null,
+  currentSpriteForBg: null,
+  currentTab: 'lib'
+};
+
+const $ = id => document.getElementById(id);
+const toast = (msg, type='') => {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 3000);
+};
+const setStatus = txt => $('status').textContent = txt;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+async function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch(e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch(e) { return false; }
+}
+
+/* ============================================================
+   TAB SWITCHER
+   ============================================================ */
+function switchTab(tab) {
+  S.currentTab = tab;
+  $('tabLib').classList.toggle('active', tab === 'lib');
+  $('tabSheet').classList.toggle('active', tab === 'sheet');
+  $('tabAnimate').classList.toggle('active', tab === 'animate');
+  
+  if (tab === 'animate') {
+    $('animateWrap').style.display = 'flex';
+    renderAnimUI();
+  } else {
+    $('animateWrap').style.display = 'none';
+  }
+}
+$('tabLib').addEventListener('click', () => switchTab('lib'));
+$('tabAnimate').addEventListener('click', () => switchTab('animate'));
+
+/* ============================================================
+   MODE SWITCHER
+   ============================================================ */
+function setMode(mode) {
+  S.mode = mode;
+  $('btnModeCrop').classList.toggle('active', mode === 'crop');
+  $('btnModePan').classList.toggle('active', mode === 'pan');
+  
+  const canvas = $('sourceCanvas');
+  if (mode === 'crop') {
+    canvas.style.cursor = 'crosshair';
+    canvas.style.touchAction = 'none'; 
+  } else {
+    canvas.style.cursor = 'grab';
+    canvas.style.touchAction = 'pan-x pan-y'; 
+  }
+}
+$('btnModeCrop').addEventListener('click', () => setMode('crop'));
+$('btnModePan').addEventListener('click', () => setMode('pan'));
+
+/* ============================================================
+   LOAD
+   ============================================================ */
+$('btnLoadImg').addEventListener('click', () => { $('fileInput').value = ''; $('fileInput').click(); });
+$('fileInput').addEventListener('change', async (e) => {
+  for (const file of Array.from(e.target.files)) await loadSourceFile(file);
+});
+
+async function loadSourceFile(file){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const src = {
+          id: S.nextSourceId++, name: file.name.replace(/\.[^.]+$/, ''),
+          img, dataUrl: e.target.result
+        };
+        S.sources.push(src);
+        if (!S.activeSourceId) S.activeSourceId = src.id;
+        renderSourceTabs();
+        activateSource(src.id);
+        toast(`Dimuat: ${src.name}`, 'success');
+        resolve(src);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function getActiveSource(){ return S.sources.find(s => s.id === S.activeSourceId); }
+
+function renderSourceTabs(){
+  const tabs = $('sourceTabs');
+  tabs.innerHTML = '';
+  for (const src of S.sources){
+    const tab = document.createElement('div');
+    tab.className = 'source-tab' + (src.id === S.activeSourceId ? ' active' : '');
+    tab.innerHTML = `${src.name} <span class="close" data-id="${src.id}">×</span>`;
+    tab.addEventListener('click', (e) => {
+      if (e.target.classList.contains('close')) { e.stopPropagation(); closeSource(src.id); return; }
+      activateSource(src.id);
+    });
+    tabs.appendChild(tab);
+  }
+}
+
+function activateSource(id){
+  S.activeSourceId = id;
+  const src = getActiveSource();
+  if (!src) return;
+  
+  const wrap = $('canvasWrap');
+  const maxW = wrap.clientWidth - 40;
+  const maxH = wrap.clientHeight - 40;
+  let initialZoom = Math.min(maxW / src.img.width, maxH / src.img.height, 1);
+  S.zoom = Math.max(initialZoom, 0.02); 
+  
+  S.crop.x = 0; S.crop.y = 0;
+  S.crop.w = src.img.width;
+  S.crop.h = src.img.height;
+  renderSourceTabs();
+  renderSource();
+}
+
+function closeSource(id){
+  if (!confirm('Tutup gambar sumber ini?')) return;
+  S.sources = S.sources.filter(s => s.id !== id);
+  if (S.activeSourceId === id){
+    S.activeSourceId = S.sources.length ? S.sources[0].id : null;
+    if (S.activeSourceId) activateSource(S.activeSourceId);
+    else renderSource();
+  }
+  renderSourceTabs();
+}
+
+/* ============================================================
+   RENDER & ZOOM
+   ============================================================ */
+const sourceCanvas = $('sourceCanvas');
+const sctx = sourceCanvas.getContext('2d');
+
+function renderSource(){
+  const src = getActiveSource();
+  if (!src){
+    $('emptyState').style.display = 'block';
+    sourceCanvas.style.display = 'none';
+    $('btnPreview').disabled = true;
+    $('btnAdd').disabled = true;
+    return;
+  }
+  $('emptyState').style.display = 'none';
+  sourceCanvas.style.display = 'block';
+
+  S.crop.x = clamp(S.crop.x, 0, src.img.width - 1);
+  S.crop.y = clamp(S.crop.y, 0, src.img.height - 1);
+  S.crop.w = clamp(S.crop.w, 1, src.img.width - S.crop.x);
+  S.crop.h = clamp(S.crop.h, 1, src.img.height - S.crop.y);
+
+  const cw = Math.round(src.img.width * S.zoom);
+  const ch = Math.round(src.img.height * S.zoom);
+  sourceCanvas.width = cw;
+  sourceCanvas.height = ch;
+  sourceCanvas.style.width = cw + 'px';
+  sourceCanvas.style.height = ch + 'px';
+
+  sctx.imageSmoothingEnabled = false;
+  sctx.clearRect(0, 0, cw, ch);
+
+  const sz = 12;
+  for (let y = 0; y < ch; y += sz)
+    for (let x = 0; x < cw; x += sz){
+      sctx.fillStyle = ((Math.floor(x/sz) + Math.floor(y/sz)) % 2 === 0) ? '#1a1f26' : '#22272e';
+      sctx.fillRect(x, y, sz, sz);
+    }
+  sctx.drawImage(src.img, 0, 0, cw, ch);
+
+  drawCropOverlay();
+  updateCropInputs();
+  $('zoomLabel').textContent = Math.round(S.zoom * 100) + '%';
+  $('btnPreview').disabled = false;
+  $('btnAdd').disabled = false;
+}
+
+function drawCropOverlay(){
+  const z = S.zoom;
+  const sx = S.crop.x * z, sy = S.crop.y * z;
+  const sw = S.crop.w * z, sh = S.crop.h * z;
+  const cw = sourceCanvas.width, ch = sourceCanvas.height;
+
+  sctx.fillStyle = 'rgba(0,0,0,.55)';
+  sctx.fillRect(0, 0, cw, sy);
+  sctx.fillRect(0, sy + sh, cw, ch - sy - sh);
+  sctx.fillRect(0, sy, sx, sh);
+  sctx.fillRect(sx + sw, sy, cw - sx - sw, sh);
+
+  sctx.strokeStyle = '#3fb950';
+  sctx.lineWidth = 2;
+  sctx.strokeRect(sx, sy, sw, sh);
+
+  const hs = 8;
+  sctx.fillStyle = '#3fb950';
+  sctx.fillRect(sx - hs/2, sy - hs/2, hs, hs);
+  sctx.fillRect(sx + sw - hs/2, sy - hs/2, hs, hs);
+  sctx.fillRect(sx - hs/2, sy + sh - hs/2, hs, hs);
+  sctx.fillRect(sx + sw - hs/2, sy + sh - hs/2, hs, hs);
+
+  sctx.fillStyle = 'rgba(63,185,80,.7)';
+  sctx.fillRect(sx + sw/2 - hs/2, sy - hs/3, hs, hs*2/3);
+  sctx.fillRect(sx + sw/2 - hs/2, sy + sh - hs/3, hs, hs*2/3);
+  sctx.fillRect(sx - hs/3, sy + sh/2 - hs/2, hs*2/3, hs);
+  sctx.fillRect(sx + sw - hs/3, sy + sh/2 - hs/2, hs*2/3, hs);
+
+  const label = `${S.crop.w}×${S.crop.h}`;
+  sctx.font = 'bold 11px system-ui';
+  const lw = sctx.measureText(label).width + 12;
+  sctx.fillStyle = 'rgba(0,0,0,.8)';
+  sctx.fillRect(sx, sy + sh + 4, lw, 18);
+  sctx.fillStyle = '#3fb950';
+  sctx.fillText(label, sx + 6, sy + sh + 17);
+}
+
+function updateCropInputs(){
+  $('cropX').value = Math.round(S.crop.x);
+  $('cropY').value = Math.round(S.crop.y);
+  $('cropW').value = Math.round(S.crop.w);
+  $('cropH').value = Math.round(S.crop.h);
+}
+
+function setZoom(newZoom, centerX = null, centerY = null){
+  const src = getActiveSource();
+  if (!src) return;
+  
+  const wrap = $('canvasWrap');
+  const oldZoom = S.zoom;
+  S.zoom = clamp(newZoom, 0.02, 16);
+  if (Math.abs(oldZoom - S.zoom) < 0.001) return;
+
+  if (centerX === null) {
+    centerX = wrap.scrollLeft + wrap.clientWidth / 2;
+    centerY = wrap.scrollTop + wrap.clientHeight / 2;
+  }
+
+  const imgX = centerX / oldZoom;
+  const imgY = centerY / oldZoom;
+
+  renderSource();
+
+  wrap.scrollLeft = (imgX * S.zoom) - (wrap.clientWidth / 2);
+  wrap.scrollTop = (imgY * S.zoom) - (wrap.clientHeight / 2);
+}
+
+$('btnZoomIn').addEventListener('click', () => setZoom(S.zoom * 1.25));
+$('btnZoomOut').addEventListener('click', () => setZoom(S.zoom / 1.25));
+$('btnZoom100').addEventListener('click', () => setZoom(1));
+$('btnZoomFit').addEventListener('click', () => {
+  const src = getActiveSource();
+  if (!src) return;
+  const wrap = $('canvasWrap');
+  const z = Math.min((wrap.clientWidth - 40) / src.img.width, (wrap.clientHeight - 40) / src.img.height);
+  setZoom(z);
+});
+
+sourceCanvas.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const wrap = $('canvasWrap');
+  const rect = wrap.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left + wrap.scrollLeft;
+  const mouseY = e.clientY - rect.top + wrap.scrollTop;
+  const factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+  setZoom(S.zoom * factor, mouseX, mouseY);
+}, { passive: false });
+
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+let pinchCenter = { x: 0, y: 0 };
+
+sourceCanvas.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    S.drag = null;
+    pinchStartDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    pinchStartZoom = S.zoom;
+    
+    const wrap = $('canvasWrap');
+    const rect = wrap.getBoundingClientRect();
+    pinchCenter = {
+       x: (e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left + wrap.scrollLeft,
+       y: (e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top + wrap.scrollTop
+    };
+  }
+}, { passive: false });
+
+sourceCanvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const factor = dist / pinchStartDist;
+    setZoom(pinchStartZoom * factor, pinchCenter.x, pinchCenter.y);
+  }
+}, { passive: false });
+
+/* ============================================================
+   INTERAKSI CROP & PAN
+   ============================================================ */
+function canvasPos(e){
+  const r = sourceCanvas.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (cx - r.left) * (sourceCanvas.width / r.width),
+    y: (cy - r.top) * (sourceCanvas.height / r.height),
+  };
+}
+
+function hitTest(cx, cy){
+  const z = S.zoom;
+  const sx = S.crop.x * z, sy = S.crop.y * z;
+  const sw = S.crop.w * z, sh = S.crop.h * z;
+  const T = 16;
+
+  if (Math.abs(cx - sx) < T && Math.abs(cy - sy) < T) return 'resize-nw';
+  if (Math.abs(cx - (sx+sw)) < T && Math.abs(cy - sy) < T) return 'resize-ne';
+  if (Math.abs(cx - (sx+sw)) < T && Math.abs(cy - (sy+sh)) < T) return 'resize-se';
+  if (Math.abs(cx - sx) < T && Math.abs(cy - (sy+sh)) < T) return 'resize-sw';
+  if (Math.abs(cx - sx) < T && cy > sy && cy < sy+sh) return 'resize-w';
+  if (Math.abs(cx - (sx+sw)) < T && cy > sy && cy < sy+sh) return 'resize-e';
+  if (Math.abs(cy - sy) < T && cx > sx && cx < sx+sw) return 'resize-n';
+  if (Math.abs(cy - (sy+sh)) < T && cx > sx && cx < sx+sw) return 'resize-s';
+  if (cx > sx && cx < sx+sw && cy > sy && cy < sy+sh) return 'move';
+  return 'new';
+}
+
+const CURSORS = {
+  'move':'move', 'new':'crosshair',
+  'resize-nw':'nwse-resize', 'resize-se':'nwse-resize',
+  'resize-ne':'nesw-resize', 'resize-sw':'nesw-resize',
+  'resize-w':'ew-resize', 'resize-e':'ew-resize',
+  'resize-n':'ns-resize', 'resize-s':'ns-resize',
+};
+
+sourceCanvas.addEventListener('mousedown', (e) => {
+  const src = getActiveSource();
+  if (!src) return;
+
+  if (S.mode === 'pan') {
+    sourceCanvas.style.cursor = 'grabbing';
+    let startX = e.clientX;
+    let startY = e.clientY;
+    let startScrollLeft = $('canvasWrap').scrollLeft;
+    let startScrollTop = $('canvasWrap').scrollTop;
+
+    const onMove = (ev) => {
+      $('canvasWrap').scrollLeft = startScrollLeft - (ev.clientX - startX);
+      $('canvasWrap').scrollTop = startScrollTop - (ev.clientY - startY);
+    };
+    const onUp = () => {
+      sourceCanvas.style.cursor = 'grab';
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return;
+  }
+
+  const p = canvasPos(e);
+  const hit = hitTest(p.x, p.y);
+  S.drag = {
+    mode: hit, startX: p.x, startY: p.y,
+    startCrop: { ...S.crop }, active: true, moved: false,
+  };
+  sourceCanvas.style.cursor = CURSORS[hit] || 'crosshair';
+});
+
+window.addEventListener('mousemove', (e) => {
+  if (S.drag?.active){ e.preventDefault(); moveDrag(e); return; }
+  if (S.mode === 'crop' && getActiveSource() && e.target === sourceCanvas){
+    const p = canvasPos(e);
+    const hit = hitTest(p.x, p.y);
+    sourceCanvas.style.cursor = CURSORS[hit] || 'crosshair';
+  }
+});
+
+sourceCanvas.addEventListener('touchstart', (e) => { 
+  if (S.mode === 'crop' && e.touches.length === 1) {
+    e.preventDefault(); 
+    startDrag(e); 
+  }
+}, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+  if (S.drag?.active && S.mode === 'crop'){ e.preventDefault(); moveDrag(e); }
+}, { passive: false });
+
+window.addEventListener('mouseup', endDrag);
+window.addEventListener('touchend', endDrag);
+
+function startDrag(e){
+  const src = getActiveSource();
+  if (!src) return;
+  const p = canvasPos(e);
+  const hit = hitTest(p.x, p.y);
+  S.drag = {
+    mode: hit, startX: p.x, startY: p.y,
+    startCrop: { ...S.crop }, active: true, moved: false,
+  };
+}
+
+function moveDrag(e){
+  if (!S.drag?.active) return;
+  const src = getActiveSource();
+  if (!src) return;
+  const p = canvasPos(e);
+  const z = S.zoom;
+
+  const dist = Math.hypot(p.x - S.drag.startX, p.y - S.drag.startY);
+  if (dist > 3) S.drag.moved = true;
+  if (!S.drag.moved && S.drag.mode !== 'new') return;
+
+  const dx = (p.x - S.drag.startX) / z;
+  const dy = (p.y - S.drag.startY) / z;
+  const c0 = S.drag.startCrop;
+  const mode = S.drag.mode;
+
+  let nx = c0.x, ny = c0.y, nw = c0.w, nh = c0.h;
+
+  if (mode === 'move'){
+    nx = c0.x + dx;
+    ny = c0.y + dy;
+    nx = clamp(nx, 0, src.img.width - nw);
+    ny = clamp(ny, 0, src.img.height - nh);
+  } else if (mode === 'new'){
+    const sx0 = S.drag.startX / z, sy0 = S.drag.startY / z;
+    const sx1 = p.x / z, sy1 = p.y / z;
+    nx = Math.min(sx0, sx1);
+    ny = Math.min(sy0, sy1);
+    nw = Math.abs(sx1 - sx0);
+    nh = Math.abs(sy1 - sy0);
+  } else if (mode.startsWith('resize-')){
+    const dir = mode.slice(7);
+    if (dir.includes('w')){
+      const newX = c0.x + dx;
+      const newW = c0.w - dx;
+      if (newW >= 1){ nx = newX; nw = newW; }
+    }
+    if (dir.includes('e')){
+      nw = Math.max(1, c0.w + dx);
+    }
+    if (dir.includes('n')){
+      const newY = c0.y + dy;
+      const newH = c0.h - dy;
+      if (newH >= 1){ ny = newY; nh = newH; }
+    }
+    if (dir.includes('s')){
+      nh = Math.max(1, c0.h + dy);
+    }
+  }
+
+  nx = clamp(nx, 0, src.img.width - 1);
+  ny = clamp(ny, 0, src.img.height - 1);
+  nw = clamp(nw, 1, src.img.width - nx);
+  nh = clamp(nh, 1, src.img.height - ny);
+
+  S.crop.x = Math.round(nx);
+  S.crop.y = Math.round(ny);
+  S.crop.w = Math.round(nw);
+  S.crop.h = Math.round(nh);
+  updateCropInputs();
+  renderSourceOnly();
+}
+
+function endDrag(){
+  if (S.drag){
+    if (S.drag.mode === 'new' && !S.drag.moved){
+      const src = getActiveSource();
+      if (src){ S.crop.x = 0; S.crop.y = 0; S.crop.w = src.img.width; S.crop.h = src.img.height; }
+      updateCropInputs();
+      renderSourceOnly();
+    }
+    S.drag = null;
+  }
+}
+
+function renderSourceOnly(){
+  const src = getActiveSource();
+  if (!src) return;
+  const cw = sourceCanvas.width, ch = sourceCanvas.height;
+  sctx.clearRect(0, 0, cw, ch);
+  const sz = 12;
+  for (let y = 0; y < ch; y += sz)
+    for (let x = 0; x < cw; x += sz){
+      sctx.fillStyle = ((Math.floor(x/sz) + Math.floor(y/sz)) % 2 === 0) ? '#1a1f26' : '#22272e';
+      sctx.fillRect(x, y, sz, sz);
+    }
+  sctx.imageSmoothingEnabled = false;
+  sctx.drawImage(src.img, 0, 0, cw, ch);
+  drawCropOverlay();
+}
+
+/* ============================================================
+   INPUT FIELDS & PRESET
+   ============================================================ */
+['cropX','cropY','cropW','cropH'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    const src = getActiveSource();
+    if (!src) return;
+    S.crop.x = clamp(+($('cropX').value) || 0, 0, src.img.width - 1);
+    S.crop.y = clamp(+($('cropY').value) || 0, 0, src.img.height - 1);
+    S.crop.w = clamp(+($('cropW').value) || 1, 1, src.img.width - S.crop.x);
+    S.crop.h = clamp(+($('cropH').value) || 1, 1, src.img.height - S.crop.y);
+    updateCropInputs();
+    renderSourceOnly();
+  });
+});
+
+document.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const size = +btn.dataset.size;
+    S.crop.w = size; S.crop.h = size;
+    const src = getActiveSource();
+    if (src){
+      S.crop.w = Math.min(S.crop.w, src.img.width - S.crop.x);
+      S.crop.h = Math.min(S.crop.h, src.img.height - S.crop.y);
+    }
+    updateCropInputs();
+    renderSourceOnly();
+  });
+});
+
+/* ============================================================
+   AUTO-CROP
+   ============================================================ */
+$('btnAutoCrop').addEventListener('click', () => {
+  const src = getActiveSource();
+  if (!src) { toast('Load gambar dulu', 'error'); return; }
+  
+  const cx = Math.floor(S.crop.x);
+  const cy = Math.floor(S.crop.y);
+  const cw = Math.floor(S.crop.w);
+  const ch = Math.floor(S.crop.h);
+  
+  if (cw < 5 || ch < 5) { toast('Kotak terlalu kecil', 'error'); return; }
+
+  const off = document.createElement('canvas');
+  off.width = cw; off.height = ch;
+  const octx = off.getContext('2d');
+  octx.drawImage(src.img, cx, cy, cw, ch, 0, 0, cw, ch);
+  
+  const data = octx.getImageData(0, 0, cw, ch).data;
+  
+  const corners = [[0,0], [cw-1,0], [0,ch-1], [cw-1,ch-1]];
+  const bgColors = corners.map(([x,y]) => {
+    const idx = (y * cw + x) * 4;
+    return [data[idx], data[idx+1], data[idx+2]];
+  });
+  
+  const isBg = (r,g,b) => {
+    for(let bg of bgColors) {
+      if (Math.abs(r-bg[0]) < 30 && Math.abs(g-bg[1]) < 30 && Math.abs(b-bg[2]) < 30) return true;
+    }
+    return false;
+  };
+  
+  let minX = cw, minY = ch, maxX = -1, maxY = -1;
+  
+  for (let py = 0; py < ch; py++){
+    for (let px = 0; px < cw; px++){
+      const idx = (py * cw + px) * 4;
+      const a = data[idx+3];
+      if (a < 15) continue;
+      
+      const r = data[idx], g = data[idx+1], b = data[idx+2];
+      if (!isBg(r,g,b)) {
+        if (px < minX) minX = px;
+        if (py < minY) minY = py;
+        if (px > maxX) maxX = px;
+        if (py > maxY) maxY = py;
+      }
+    }
+  }
+  
+  if (maxX === -1 || maxY === -1) {
+    toast('Tidak ada karakter terdeteksi', 'error');
+    return;
+  }
+  
+  S.crop.x = Math.max(0, cx + minX - 1);
+  S.crop.y = Math.max(0, cy + minY - 1);
+  S.crop.w = Math.min(src.img.width - S.crop.x, (maxX - minX + 1) + 2);
+  S.crop.h = Math.min(src.img.height - S.crop.y, (maxY - minY + 1) + 2);
+  
+  updateCropInputs();
+  renderSourceOnly();
+  toast('Auto-Crop berhasil merapatkan kotak', 'success');
+});
+
+/* ============================================================
+   BULK RENAME
+   ============================================================ */
+$('btnBulkRename').addEventListener('click', () => {
+  if(S.sprites.length === 0) { toast('Library kosong', 'error'); return; }
+  $('modalRename').classList.add('show');
+});
+
+$('btnDoRename').addEventListener('click', () => {
+  const prefix = $('renamePrefix').value;
+  let start = +$('renameStart').value || 1;
+  const pad = +$('renamePad').value || 0;
+
+  if (!prefix) { toast('Prefix tidak boleh kosong', 'error'); return; }
+
+  S.sprites.forEach((sp, i) => {
+    let numStr = (start + i).toString();
+    if (pad > 0) {
+      while (numStr.length < pad) numStr = '0' + numStr;
+    }
+    sp.name = prefix + numStr;
+  });
+
+  renderLibrary();
+  $('modalRename').classList.remove('show');
+  toast('Semua nama sprite berhasil diubah!', 'success');
+});
+
+/* ============================================================
+   CROP LOGIC & PREVIEW
+   ============================================================ */
+let pendingCrop = null;
+
+$('btnPreview').addEventListener('click', showPreviewModal);
+$('btnAdd').addEventListener('click', showPreviewModal);
+
+function showPreviewModal(){
+  const src = getActiveSource();
+  if (!src) return;
+  
+  const x = Math.round(S.crop.x);
+  const y = Math.round(S.crop.y);
+  const w = Math.round(S.crop.w);
+  const h = Math.round(S.crop.h);
+  
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const octx = off.getContext('2d');
+  octx.imageSmoothingEnabled = false;
+  octx.drawImage(src.img, x, y, w, h, 0, 0, w, h);
+  
+  pendingCrop = { dataUrl: off.toDataURL('image/png'), w, h };
+
+  const area = $('previewArea');
+  area.innerHTML = '';
+
+  const c1 = document.createElement('div'); c1.className = 'preview-cell';
+  const i1 = document.createElement('img');
+  i1.src = pendingCrop.dataUrl;
+  i1.style.width = Math.min(pendingCrop.w * 2, 120) + 'px';
+  i1.style.height = 'auto';
+  const l1 = document.createElement('div');
+  l1.className = 'lbl'; l1.textContent = `Asli (${pendingCrop.w}×${pendingCrop.h})`;
+  c1.appendChild(i1); c1.appendChild(l1); area.appendChild(c1);
+
+  renderCellPreview();
+
+  $('previewName').value = `sprite_${S.nextSpriteId}`;
+  $('modalPreview').classList.add('show');
+  setTimeout(() => { $('previewName').focus(); $('previewName').select(); }, 50);
+}
+
+function renderCellPreview(){
+  const container = $('cellPreview');
+  container.innerHTML = '';
+  if (!pendingCrop) return;
+
+  const cellSize = +$('cellSize').value;
+  const displaySize = 128;
+  const scale = displaySize / cellSize;
+
+  const cell = document.createElement('div');
+  cell.className = 'cell-preview';
+  cell.style.width = displaySize + 'px';
+  cell.style.height = displaySize + 'px';
+
+  const spriteScale = Math.min(1, cellSize / pendingCrop.w, cellSize / pendingCrop.h);
+  const dispW = pendingCrop.w * spriteScale * scale;
+  const dispH = pendingCrop.h * spriteScale * scale;
+
+  const img = document.createElement('img');
+  img.src = pendingCrop.dataUrl;
+  img.style.width = dispW + 'px';
+  img.style.height = dispH + 'px';
+  img.style.left = ((displaySize - dispW) / 2) + 'px';
+  img.style.bottom = (1 * scale) + 'px';
+
+  cell.appendChild(img);
+  container.appendChild(cell);
+}
+
+$('cellSize').addEventListener('change', renderCellPreview);
+
+$('btnPreviewCancel').addEventListener('click', () => {
+  $('modalPreview').classList.remove('show');
+  pendingCrop = null;
+});
+
+$('btnPreviewAdd').addEventListener('click', () => {
+  const name = $('previewName').value.trim();
+  if (!name){ toast('Isi nama sprite', 'error'); return; }
+  if (!pendingCrop){ toast('Crop tidak valid', 'error'); return; }
+  if (S.sprites.some(s => s.name === name)){ toast('Nama sudah dipakai', 'error'); return; }
+
+  const img = new Image();
+  img.onload = () => {
+    S.sprites.push({
+      id: S.nextSpriteId++, name,
+      dataUrl: pendingCrop.dataUrl, img,
+      w: pendingCrop.w, h: pendingCrop.h,
+    });
+    renderLibrary();
+    toast(`"${name}" (${pendingCrop.w}×${pendingCrop.h})`, 'success');
+    setStatus(`${S.sprites.length} sprite di library`);
+    $('modalPreview').classList.remove('show');
+    pendingCrop = null;
+  };
+  img.src = pendingCrop.dataUrl;
+});
+
+$('previewName').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('btnPreviewAdd').click();
+  if (e.key === 'Escape') $('btnPreviewCancel').click();
+});
+
+/* ============================================================
+   LIBRARY
+   ============================================================ */
+function renderLibrary(){
+  const lib = $('library');
+  $('libCount').textContent = S.sprites.length;
+  $('libraryInfo').textContent = S.sprites.length === 0
+    ? 'Belum ada sprite'
+    : `${S.sprites.length} sprite`;
+
+  if (S.sprites.length === 0){
+    lib.innerHTML = '<div class="lib-empty">Belum ada sprite. Crop dan tambah dari gambar sumber.</div>';
+    return;
+  }
+
+  lib.innerHTML = '';
+  for (const sp of S.sprites){
+    const card = document.createElement('div');
+    card.className = 'lib-card' + (S.selectedSpriteId === sp.id ? ' selected' : '');
+    card.innerHTML = `
+      <img src="${sp.dataUrl}" alt="${sp.name}">
+      <div class="name">${sp.name}</div>
+      <div class="dim">${sp.w}×${sp.h}</div>
+      <button class="del" title="Hapus">×</button>
+    `;
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('del')){ e.stopPropagation(); deleteSprite(sp.id); return; }
+      S.selectedSpriteId = sp.id;
+      renderLibrary();
+      
+      if (S.currentTab === 'animate') {
+        addFrameToAnim(sp.id);
+        return;
+      }
+
+      openViewModal(sp);
+    });
+    card.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); deleteSprite(sp.id);
+    });
+    lib.appendChild(card);
+  }
+}
+
+function deleteSprite(id){
+  const sp = S.sprites.find(s => s.id === id);
+  if (!sp) return;
+  if (!confirm(`Hapus "${sp.name}"?`)) return;
+  S.sprites = S.sprites.filter(s => s.id !== id);
+  S.animations.forEach(a => a.frames = a.frames.filter(f => f !== id));
+  if (S.selectedSpriteId === id) S.selectedSpriteId = null;
+  renderLibrary();
+  if (S.currentTab === 'animate') renderAnimUI();
+  toast('Sprite dihapus');
+}
+
+/* ============================================================
+   ANIMATE
+   ============================================================ */
+let animPreviewTimer = null;
+let isPlaying = false;
+let currentFrameIndex = 0;
+
+function renderAnimUI() {
+  const sel = $('animSelect');
+  sel.innerHTML = '';
+  
+  if (S.animations.length === 0) {
+    sel.innerHTML = '<option value="">(Belum ada animasi)</option>';
+    $('animFrames').innerHTML = '<div style="color:#8b949e; font-size:11px; margin:auto; padding:20px;">Klik "+ Baru" untuk membuat grup animasi.</div>';
+    $('animLivePreview').style.display = 'none';
+    $('animLivePlaceholder').style.display = 'block';
+    return;
+  }
+  
+  S.animations.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.name;
+    sel.appendChild(opt);
+  });
+  
+  if (!S.activeAnimId) S.activeAnimId = S.animations[0].id;
+  sel.value = S.activeAnimId;
+  
+  const anim = S.animations.find(a => a.id === S.activeAnimId);
+  $('animFps').value = anim.fps;
+  
+  const wrap = $('animFrames');
+  wrap.innerHTML = '';
+  anim.frames.forEach((frameId, idx) => {
+    const sp = S.sprites.find(s => s.id === frameId);
+    if (!sp) return;
+    const d = document.createElement('div');
+    d.className = 'anim-frame';
+    d.innerHTML = `<img src="${sp.dataUrl}"><div class="rm">×</div>`;
+    d.querySelector('.rm').onclick = (e) => {
+      e.stopPropagation();
+      anim.frames.splice(idx, 1);
+      renderAnimUI();
+    };
+    wrap.appendChild(d);
+  });
+
+  // Reset live preview
+  if (!isPlaying) {
+    $('animLivePreview').style.display = 'none';
+    $('animLivePlaceholder').style.display = 'block';
+  }
+}
+
+$('btnPlayAnim').addEventListener('click', function() {
+  const anim = S.animations.find(a => a.id === S.activeAnimId);
+  if (!anim || anim.frames.length === 0) { toast('Frame masih kosong', 'error'); return; }
+  
+  if (isPlaying) {
+    // STOP ANIMASI
+    isPlaying = false;
+    clearInterval(animPreviewTimer);
+    this.textContent = '▶️ Putar';
+    this.style.background = '#2ea043';
+    document.querySelectorAll('.anim-frame').forEach(el => el.style.border = '1px solid #30363d');
+    
+    $('animLivePreview').style.display = 'none';
+    $('animLivePlaceholder').style.display = 'block';
+    return;
+  }
+  
+  // MULAI ANIMASI
+  isPlaying = true;
+  this.textContent = '⏹ Stop';
+  this.style.background = '#da3633';
+  currentFrameIndex = 0;
+  
+  // Tampilkan Live Preview
+  $('animLivePreview').style.display = 'block';
+  $('animLivePlaceholder').style.display = 'none';
+
+  // Fungsi update frame
+  const updateFrame = () => {
+    document.querySelectorAll('.anim-frame').forEach(el => el.style.border = '1px solid #30363d');
+    const el = $('animFrames').children[currentFrameIndex];
+    if (el) el.style.border = '2px solid #3fb950';
+    
+    const frameId = anim.frames[currentFrameIndex];
+    const sp = S.sprites.find(s => s.id === frameId);
+    if (sp) $('animLivePreview').src = sp.dataUrl;
+    
+    currentFrameIndex = (currentFrameIndex + 1) % anim.frames.length;
+  };
+
+  updateFrame(); // Panggil langsung agar tidak delay
+  animPreviewTimer = setInterval(updateFrame, 1000 / anim.fps);
+});
+
+$('btnNewAnim').addEventListener('click', () => {
+  const name = prompt('Nama animasi (misal: kuda_lari):', 'animasi_1');
+  if (!name) return;
+  const newAnim = { id: S.nextAnimId++, name: name, frames: [], fps: 8 };
+  S.animations.push(newAnim);
+  S.activeAnimId = newAnim.id;
+  renderAnimUI();
+});
+
+$('animSelect').addEventListener('change', (e) => {
+  S.activeAnimId = +e.target.value;
+  renderAnimUI();
+});
+
+$('animFps').addEventListener('change', (e) => {
+  const anim = S.animations.find(a => a.id === S.activeAnimId);
+  if (anim) anim.fps = Math.max(1, +e.target.value);
+});
+
+$('btnDelAnim').addEventListener('click', () => {
+  if (!confirm('Hapus animasi ini?')) return;
+  S.animations = S.animations.filter(a => a.id !== S.activeAnimId);
+  S.activeAnimId = S.animations.length > 0 ? S.animations[0].id : null;
+  renderAnimUI();
+});
+
+function addFrameToAnim(spriteId) {
+  const anim = S.animations.find(a => a.id === S.activeAnimId);
+  if (!anim) { toast('Pilih atau buat animasi dulu', 'error'); return; }
+  anim.frames.push(spriteId);
+  renderAnimUI();
+  toast('Frame ditambahkan');
+}
+
+/* ============================================================
+   PACK SHEET & EXPORT
+   ============================================================ */
+function generatePackedSheet(targetScale = 1) {
+  if (S.sprites.length === 0) return null;
+  
+  let maxW = 0, maxH = 0;
+  S.sprites.forEach(sp => {
+    if (sp.w > maxW) maxW = sp.w;
+    if (sp.h > maxH) maxH = sp.h;
+  });
+
+  const cols = Math.min(8, S.sprites.length);
+  const rows = Math.ceil(S.sprites.length / cols);
+  
+  const cellW = maxW * targetScale;
+  const cellH = maxH * targetScale;
+
+  const sheet = document.createElement('canvas');
+  sheet.width = cols * cellW;
+  sheet.height = rows * cellH;
+  const sctx = sheet.getContext('2d');
+  sctx.imageSmoothingEnabled = false;
+  
+  const framesData = {};
+
+  S.sprites.forEach((sp, i) => {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const cx = col * cellW;
+    const cy = row * cellH;
+
+    const sw = sp.w * targetScale;
+    const sh = sp.h * targetScale;
+    const dx = cx + (cellW - sw) / 2;
+    const dy = cy + cellH - sh;
+    
+    sctx.drawImage(sp.img, dx, dy, sw, sh);
+    
+    framesData[sp.name] = { x: cx, y: cy, w: cellW, h: cellH };
+  });
+  
+  return { canvas: sheet, cols, rows, cellW, cellH, framesData };
+}
+
+const expCanvas = $('expCanvas');
+const coordTooltip = $('coordTooltip');
+
+expCanvas.addEventListener('click', (e) => {
+  const rect = expCanvas.getBoundingClientRect();
+  const scaleX = expCanvas.width / rect.width;
+  const scaleY = expCanvas.height / rect.height;
+  const canvasX = (e.clientX - rect.left) * scaleX;
+  const canvasY = (e.clientY - rect.top) * scaleY;
+  
+  const packed = generatePackedSheet(1);
+  if (!packed) return;
+  
+  const col = Math.floor(canvasX / packed.cellW);
+  const row = Math.floor(canvasY / packed.cellH);
+  
+  for (const name in packed.framesData) {
+    const f = packed.framesData[name];
+    if (f.x === col * packed.cellW && f.y === row * packed.cellH) {
+      coordTooltip.style.display = 'block';
+      coordTooltip.textContent = `${name}: X:${f.x}, Y:${f.y}, W:${f.w}, H:${f.h}`;
+      
+      const tooltipX = e.clientX - rect.left + 10;
+      const tooltipY = e.clientY - rect.top + 10;
+      coordTooltip.style.left = tooltipX + 'px';
+      coordTooltip.style.top = tooltipY + 'px';
+      return;
+    }
+  }
+  coordTooltip.style.display = 'none';
+});
+expCanvas.addEventListener('mouseleave', () => coordTooltip.style.display = 'none');
+
+$('btnExport').addEventListener('click', () => {
+  if (S.sprites.length === 0) { toast('Library kosong', 'error'); return; }
+  
+  const packed = generatePackedSheet(1);
+  expCanvas.width = packed.canvas.width;
+  expCanvas.height = packed.canvas.height;
+  const ectx = expCanvas.getContext('2d');
+  ectx.imageSmoothingEnabled = false;
+  ectx.drawImage(packed.canvas, 0, 0);
+  
+  $('expName').value = 'sprites';
+  $('modalExport').classList.add('show');
+});
+
+$('tabSheet').addEventListener('click', () => {
+  $('btnExport').click();
+});
+
+$('expFormat').addEventListener('change', (e) => {
+  $('fieldBase64Size').style.display = (e.target.value === 'base64') ? 'block' : 'none';
+});
+
+$('btnDoExport').addEventListener('click', async () => {
+  const format = $('expFormat').value;
+  const name = $('expName').value.trim() || 'sprites';
+  const packed = generatePackedSheet(1);
+  if (!packed) return;
+
+  const buildJsonObj = (framesData, imageRef, cellW, cellH) => {
+    const obj = {
+      meta: {
+        app: "Sprite Editor",
+        version: "1.0",
+        format: format === 'base64' ? 'embedded' : 'external',
+        cellSize: { w: cellW, h: cellH },
+        scale: 1
+      },
+      frames: {},
+      animations: {}
+    };
+    if (imageRef) obj.image = imageRef;
+    
+    // Gunakan framesData yang di-passing
+    for (const fname in framesData) {
+      const f = framesData[fname];
+      obj.frames[fname] = { x: f.x, y: f.y, w: f.w, h: f.h };
+    }
+    
+    S.animations.forEach(a => {
+      const frameNames = a.frames.map(id => {
+        const sp = S.sprites.find(s => s.id === id);
+        return sp ? sp.name : null;
+      }).filter(Boolean);
+      obj.animations[a.name] = { frames: frameNames, fps: a.fps };
+    });
+    return obj;
+  };
+
+  const downloadZip = async (zip, fileName) => { /* ... biarkan sama ... */ };
+
+  if (format === 'png') {
+    // ...
+  } else if (format === 'json') {
+    // 2. UPDATE PEMANGGILAN (Tambahkan packed.framesData di awal)
+    const jsonObj = buildJsonObj(packed.framesData, name + '.png', packed.cellW, packed.cellH);
+    const zip = new JSZip();
+    zip.file(name + '.png', packed.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+    zip.file(name + '.json', JSON.stringify(jsonObj, null, 2));
+    await downloadZip(zip, name);
+  } else if (format === 'base64') {
+    const targetSize = +$('expBase64Size').value;
+    let b64Scale = 1;
+    if (targetSize > 0) b64Scale = targetSize / packed.cellH;
+    const b64Packed = generatePackedSheet(b64Scale);
+    
+    // 3. UPDATE PEMANGGILAN (Gunakan b64Packed.framesData, BUKAN packed)
+    const jsonObj = buildJsonObj(b64Packed.framesData, b64Packed.canvas.toDataURL('image/png'), b64Packed.cellW, b64Packed.cellH);
+    const text = JSON.stringify(jsonObj, null, 2);
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      $('modalExport').classList.remove('show');
+      toast(`✅ JSON Base64 disalin (${(text.length / 1024).toFixed(1)} KB)`, 'success');
+    } else {
+      toast('Gagal salin ke clipboard', 'error');
+    }
+  } else if (format === 'legacy') {
+    // 4. UPDATE PEMANGGILAN
+    const jsonObj = buildJsonObj(packed.framesData, name + '.png', packed.cellW, packed.cellH);
+    const zip = new JSZip();
+    zip.file(name + '.png', packed.canvas.toDataURL('image/png').split(',')[1], { base64: true });
+    zip.file(name + '-data.js', `window.SPRITES = ${JSON.stringify(jsonObj, null, 2)};`);
+    await downloadZip(zip, name);
+  }
+});
+
+/* ============================================================
+   SAVE / OPEN PROJECT (.json)
+   ============================================================ */
+$('btnSave').addEventListener('click', () => {
+  if (S.sprites.length === 0 && S.sources.length === 0){
+    toast('Tidak ada data untuk disimpan', 'error'); return;
+  }
+  const data = {
+    version: 3,
+    sources: S.sources.map(s => ({ name: s.name, dataUrl: s.dataUrl })),
+    sprites: S.sprites.map(s => ({ id: s.id, name: s.name, dataUrl: s.dataUrl, w: s.w, h: s.h, coord: s.coord || null })),
+    animations: S.animations,
+    nextSpriteId: S.nextSpriteId,
+    nextAnimId: S.nextAnimId,
+    nextSourceId: S.nextSourceId,
+  };
+  downloadBlob(JSON.stringify(data, null, 2), 'application/json', 'sprite-project.json');
+  toast('Project tersimpan', 'success');
+});
+
+$('btnOpen').addEventListener('click', () => { $('fileOpen').value = ''; $('fileOpen').click(); });
+
+$('fileOpen').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data.version || !data.sprites) { toast('Format tidak dikenali', 'error'); return; }
+    if (!confirm('Project saat ini akan diganti. Lanjutkan?')) return;
+    await loadProject(data);
+  } catch (err){ toast('Gagal: ' + err.message, 'error'); }
+});
+
+async function loadProject(data){
+  S.sources = [];
+  S.sprites = [];
+  S.animations = data.animations || [];
+  S.nextSpriteId = data.nextSpriteId || 1;
+  S.nextAnimId = data.nextAnimId || 1;
+  S.nextSourceId = data.nextSourceId || 1;
+  S.selectedSpriteId = null;
+  S.activeSourceId = null;
+  S.activeAnimId = S.animations.length > 0 ? S.animations[0].id : null;
+
+  if (data.sources){
+    for (const src of data.sources){
+      await new Promise((res) => {
+        const img = new Image();
+        img.onload = () => {
+          const s = { id: S.nextSourceId++, name: src.name, img, dataUrl: src.dataUrl };
+          S.sources.push(s);
+          if (!S.activeSourceId) S.activeSourceId = s.id;
+          res();
+        };
+        img.src = src.dataUrl;
+      });
+    }
+  }
+  for (const sp of data.sprites){
+    await new Promise((res) => {
+      const img = new Image();
+      img.onload = () => {
+        S.sprites.push({ id: sp.id, name: sp.name, dataUrl: sp.dataUrl, img, w: sp.w, h: sp.h, coord: sp.coord || null });
+        res();
+      };
+      img.src = sp.dataUrl;
+    });
+  }
+
+  if (S.activeSourceId) activateSource(S.activeSourceId);
+  else renderSource();
+  renderLibrary();
+  if (S.currentTab === 'animate') renderAnimUI();
+  toast('Project dimuat', 'success');
+  setStatus(`${S.sprites.length} sprite · ${S.animations.length} animasi`);
+}
+
+function downloadBlob(text, mime, filename){
+  const blob = new Blob([text], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ============================================================
+   VIEW SPRITE, HAPUS BACKGROUND & GANTI WARNA
+   ============================================================ */
+let currentViewSprite = null;
+let bgRemoveBaseData = null;
+let colorReplaceActive = false;
+let colorReplacements = [];
+let colorBaseData = null;
+let activeColorOpIndex = -1;
+
+function getSpriteCoord(sp) {
+  // Jika sprite memiliki coord dari import, gunakan itu
+  if (sp.coord) return sp.coord;
+  
+  const idx = S.sprites.findIndex(s => s.id === sp.id);
+  if (idx < 0) return null;
+  let maxW = 0, maxH = 0;
+  S.sprites.forEach(s => { if (s.w > maxW) maxW = s.w; if (s.h > maxH) maxH = s.h; });
+  const cols = Math.min(8, S.sprites.length);
+  const col = idx % cols;
+  const row = Math.floor(idx / cols);
+  return { x: col * maxW, y: row * maxH, w: maxW, h: maxH };
+}
+
+function updateCoordDisplay(sp) {
+  const coord = getSpriteCoord(sp);
+  if (!coord) { $('spriteCoordBox').style.display = 'none'; return; }
+  const obj = { name: sp.name, x: coord.x, y: coord.y, w: coord.w, h: coord.h };
+  $('coordCode').textContent = JSON.stringify(obj, null, 2);
+  $('spriteCoordBox').style.display = 'block';
+}
+
+$('btnCopyCoord').addEventListener('click', async () => {
+  const text = $('coordCode').textContent;
+  const ok = await copyToClipboard(text);
+  toast(ok ? '✅ Koordinat disalin!' : 'Gagal salin', ok ? 'success' : 'error');
+});
+
+function openViewModal(sp) {
+  currentViewSprite = sp;
+  $('viewSpriteName').textContent = `${sp.name} (${sp.w}×${sp.h})`;
+  $('viewSpriteImg').src = sp.dataUrl;
+  $('modalViewSprite').classList.add('show');
+  
+  // Reset state
+  S.bgRemoveActive = false;
+  bgRemoveBaseData = null;
+  colorReplaceActive = false;
+  colorReplacements = [];
+  colorBaseData = null;
+  activeColorOpIndex = -1;
+  S.bgTargetRGBA = null;
+  
+  $('bgRemoveControls').style.display = 'none';
+  $('colorReplaceControls').style.display = 'none';
+  $('rgbaPicker').style.display = 'none';
+  $('mainActionBtns').style.display = 'flex';
+  $('closeModalRow').style.display = 'flex';
+  
+  $('btnBgRemove').style.display = 'inline-block';
+  $('btnColorReplace').style.display = 'inline-block';
+  updateCoordDisplay(sp);
+}
+
+function closeViewModal() {
+  $('modalViewSprite').classList.remove('show');
+  currentViewSprite = null;
+  S.bgRemoveActive = false;
+  bgRemoveBaseData = null;
+  colorReplaceActive = false;
+  colorReplacements = [];
+  colorBaseData = null;
+  activeColorOpIndex = -1;
+  S.bgTargetRGBA = null;
+}
+$('btnCloseViewSprite').addEventListener('click', closeViewModal);
+
+// --- HAPUS BACKGROUND ---
+$('btnBgRemove').addEventListener('click', () => {
+  if (!currentViewSprite) return;
+  S.bgRemoveActive = true;
+  colorReplaceActive = false;
+  
+  $('colorReplaceControls').style.display = 'none';
+  $('mainActionBtns').style.display = 'none';
+  $('closeModalRow').style.display = 'none';
+  
+  const img = $('viewSpriteImg');
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  bgRemoveBaseData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  
+  $('bgRemoveControls').style.display = 'block';
+  toast('Klik pada area background', 'success');
+});
+
+$('btnCancelBg').addEventListener('click', () => {
+  S.bgRemoveActive = false;
+  $('bgRemoveControls').style.display = 'none';
+  $('mainActionBtns').style.display = 'flex';
+  $('closeModalRow').style.display = 'flex';
+  $('viewSpriteImg').src = currentViewSprite.dataUrl;
+});
+
+$('bgTolerance').addEventListener('input', applyBgRemove);
+
+function applyBgRemove() {
+  if (!S.bgRemoveActive || !bgRemoveBaseData || !S.bgTargetRGBA) return;
+  
+  const tol = +$('bgTolerance').value;
+  const newData = new ImageData(
+    new Uint8ClampedArray(bgRemoveBaseData.data),
+    bgRemoveBaseData.width,
+    bgRemoveBaseData.height
+  );
+  const d = newData.data;
+  const [r1, g1, b1] = S.bgTargetRGBA;
+  
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i+3] === 0) continue;
+    if (Math.abs(d[i]-r1) <= tol && Math.abs(d[i+1]-g1) <= tol && Math.abs(d[i+2]-b1) <= tol) {
+      d[i+3] = 0;
+    }
+  }
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = newData.width;
+  canvas.height = newData.height;
+  canvas.getContext('2d').putImageData(newData, 0, 0);
+  $('viewSpriteImg').src = canvas.toDataURL();
+}
+
+$('btnSaveBgRemove').addEventListener('click', () => {
+  if (!currentViewSprite) return;
+  const newDataUrl = $('viewSpriteImg').src;
+  const newName = prompt('Nama untuk sprite transparan ini:', currentViewSprite.name + '_trans');
+  if (!newName) return;
+  
+  const img = new Image();
+  img.onload = () => {
+    S.sprites.push({
+      id: S.nextSpriteId++, name: newName,
+      dataUrl: newDataUrl, img,
+      w: currentViewSprite.w, h: currentViewSprite.h
+    });
+    renderLibrary();
+    closeViewModal();
+    toast('Sprite transparan disimpan!', 'success');
+  };
+  img.src = newDataUrl;
+});
+
+// --- GANTI WARNA (FLOOD FILL) ---
+function getFloodFillMask(imageData, startX, startY, tolerance) {
+  const w = imageData.width, h = imageData.height;
+  const d = imageData.data;
+  const mask = new Uint8Array(w * h);
+  
+  const startIdx = (startY * w + startX) * 4;
+  const sR = d[startIdx], sG = d[startIdx+1], sB = d[startIdx+2], sA = d[startIdx+3];
+  
+  if (sA === 0) return null;
+
+  const queue = [startX + startY * w];
+  mask[startX + startY * w] = 1;
+  
+  while (queue.length > 0) {
+    const pos = queue.pop();
+    const cx = pos % w;
+    const cy = Math.floor(pos / w);
+    
+    const neighbors = [
+      [cx, cy-1], [cx, cy+1], [cx-1, cy], [cx+1, cy]
+    ];
+    
+    for (const [nx, ny] of neighbors) {
+      if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+        const npos = nx + ny * w;
+        if (mask[npos]) continue;
+        
+        const idx = npos * 4;
+        const r = d[idx], g = d[idx+1], b = d[idx+2], a = d[idx+3];
+        
+        if (a > 0 && 
+            Math.abs(r - sR) <= tolerance &&
+            Math.abs(g - sG) <= tolerance &&
+            Math.abs(b - sB) <= tolerance) {
+          mask[npos] = 1;
+          queue.push(npos);
+        }
+      }
+    }
+  }
+  return mask;
+}
+
+function renderColorReplaceList() {
+  const list = $('colorReplaceList');
+  list.innerHTML = '';
+  
+  if (colorReplacements.length === 0) {
+    list.innerHTML = '<div style="text-align:center; color:#484f58; font-size:11px; padding:8px; border:1px dashed #30363d; border-radius:4px;">Klik pada gambar untuk memilih area.</div>';
+    return;
+  }
+  
+  colorReplacements.forEach((op, idx) => {
+    const row = document.createElement('div');
+    row.style.cssText = `display:flex; gap:6px; align-items:center; padding:4px; background:${activeColorOpIndex === idx ? '#21262d' : '#0d1117'}; border:1px solid ${activeColorOpIndex === idx ? '#1f6feb' : '#30363d'}; border-radius:4px; margin-bottom:4px;`;
+    
+    const srcCanvas = document.createElement('canvas');
+    srcCanvas.width = 20; srcCanvas.height = 20;
+    const sctx = srcCanvas.getContext('2d');
+    const baseIdx = (op.startY * colorBaseData.width + op.startX) * 4;
+    sctx.fillStyle = `rgb(${colorBaseData.data[baseIdx]},${colorBaseData.data[baseIdx+1]},${colorBaseData.data[baseIdx+2]})`;
+    sctx.fillRect(0,0,20,20);
+    srcCanvas.style.cssText = 'width:24px;height:24px;border-radius:3px;border:1px solid #555;flex-shrink:0;';
+    
+    const arrow = document.createElement('span');
+    arrow.textContent = '→'; arrow.style.color = '#8b949e'; arrow.style.fontSize='10px';
+    
+    const tgt = document.createElement('div');
+    tgt.style.cssText = `width:24px;height:24px;border-radius:3px;border:1px solid #fff;flex-shrink:0;cursor:pointer;background:rgba(${op.targetR},${op.targetG},${op.targetB},${op.targetA/255})`;
+    tgt.title = "Klik untuk ubah warna";
+    tgt.addEventListener('click', () => {
+      activeColorOpIndex = idx;
+      openPickerForOp(op, idx);
+      renderColorReplaceList();
+    });
+    
+    const label = document.createElement('span');
+    label.style.cssText = 'flex:1;font-size:9px;color:#8b949e;font-family:monospace;overflow:hidden;text-overflow:ellipsis;text-align:left;';
+    label.textContent = `Area ${idx+1}`;
+    
+    const del = document.createElement('button');
+    del.textContent = '×';
+    del.style.cssText = 'background:#da3633;color:#fff;border-radius:3px;padding:0 6px;font-size:14px;cursor:pointer;height:24px;';
+    del.addEventListener('click', () => {
+      colorReplacements.splice(idx, 1);
+      if (activeColorOpIndex === idx) {
+        activeColorOpIndex = -1;
+        $('rgbaPicker').style.display = 'none';
+      }
+      renderColorReplaceList();
+      applyAllColorReplacements();
+    });
+    
+    row.append(srcCanvas, arrow, tgt, label, del);
+    list.appendChild(row);
+  });
+}
+
+function openPickerForOp(op, idx) {
+  $('rgbaPicker').style.display = 'block';
+  $('slideR').value = op.targetR; $('numR').value = op.targetR;
+  $('slideG').value = op.targetG; $('numG').value = op.targetG;
+  $('slideB').value = op.targetB; $('numB').value = op.targetB;
+  $('slideA').value = op.targetA; $('numA').value = op.targetA;
+  updateRgbaPreview();
+}
+
+function updateRgbaPreview() {
+  const r = +$('slideR').value, g = +$('slideG').value, b = +$('slideB').value, a = +$('slideA').value;
+  $('numR').value = r; $('numG').value = g; $('numB').value = b; $('numA').value = a;
+  $('rgbaPreview').style.background = `rgba(${r},${g},${b},${a/255})`;
+  
+  if (activeColorOpIndex >= 0 && colorReplacements[activeColorOpIndex]) {
+    const op = colorReplacements[activeColorOpIndex];
+    op.targetR = r; op.targetG = g; op.targetB = b; op.targetA = a;
+    applyAllColorReplacements();
+    
+    const listRows = $('colorReplaceList').children;
+    if(listRows[activeColorOpIndex]) {
+      const swatch = listRows[activeColorOpIndex].children[2];
+      if(swatch) swatch.style.background = `rgba(${r},${g},${b},${a/255})`;
+    }
+  }
+}
+
+['R','G','B','A'].forEach(c => {
+  $('slide'+c).addEventListener('input', updateRgbaPreview);
+  $('num'+c).addEventListener('input', (e) => {
+    let val = Math.min(255, Math.max(0, +e.target.value || 0));
+    $('slide'+c).value = val;
+    updateRgbaPreview();
+  });
+});
+
+$('btnClosePicker').addEventListener('click', () => {
+  $('rgbaPicker').style.display = 'none';
+  activeColorOpIndex = -1;
+  renderColorReplaceList();
+});
+
+function applyAllColorReplacements() {
+  if (!colorReplaceActive || !colorBaseData) return;
+  
+  const newData = new ImageData(
+    new Uint8ClampedArray(colorBaseData.data),
+    colorBaseData.width, colorBaseData.height
+  );
+  const d = newData.data;
+  
+  for (const op of colorReplacements) {
+    const mask = op.mask;
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i]) {
+        const idx = i * 4;
+        d[idx] = op.targetR;
+        d[idx+1] = op.targetG;
+        d[idx+2] = op.targetB;
+        d[idx+3] = op.targetA;
+      }
+    }
+  }
+  
+  const canvas = document.createElement('canvas');
+  canvas.width = newData.width; canvas.height = newData.height;
+  canvas.getContext('2d').putImageData(newData, 0, 0);
+  $('viewSpriteImg').src = canvas.toDataURL();
+}
+
+$('btnColorReplace').addEventListener('click', () => {
+  if (!currentViewSprite) return;
+  colorReplaceActive = true;
+  S.bgRemoveActive = false;
+  
+  $('bgRemoveControls').style.display = 'none';
+  $('mainActionBtns').style.display = 'none';
+  $('colorReplaceControls').style.display = 'block';
+  $('closeModalRow').style.display = 'none';
+  
+  const img = $('viewSpriteImg');
+  const canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  colorBaseData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  colorReplacements = [];
+  activeColorOpIndex = -1;
+  $('rgbaPicker').style.display = 'none';
+  
+  renderColorReplaceList();
+  toast('Klik pada area (misal: celana) yang ingin diubah', 'success');
+});
+
+$('btnCancelColor').addEventListener('click', () => {
+  colorReplaceActive = false;
+  $('colorReplaceControls').style.display = 'none';
+  $('mainActionBtns').style.display = 'flex';
+  $('closeModalRow').style.display = 'flex';
+  $('viewSpriteImg').src = currentViewSprite.dataUrl;
+});
+
+$('colorTolerance').addEventListener('input', (e) => {
+  $('colorTolVal').textContent = e.target.value;
+});
+
+$('btnSaveColorReplace').addEventListener('click', () => {
+  if (!currentViewSprite) return;
+  if (colorReplacements.length === 0) { toast('Belum ada area yang diubah', 'error'); return; }
+  
+  const newDataUrl = $('viewSpriteImg').src;
+  const newName = prompt('Nama untuk sprite varian warna:', currentViewSprite.name + '_warna');
+  if (!newName) return;
+  if (S.sprites.some(s => s.name === newName)) { toast('Nama sudah dipakai', 'error'); return; }
+  
+  const img = new Image();
+  img.onload = () => {
+    S.sprites.push({
+      id: S.nextSpriteId++, name: newName,
+      dataUrl: newDataUrl, img,
+      w: currentViewSprite.w, h: currentViewSprite.h
+    });
+    renderLibrary();
+    closeViewModal();
+    toast(`Varian "${newName}" disimpan!`, 'success');
+  };
+  img.src = newDataUrl;
+});
+
+// --- HANDLER KLIK GAMBAR (Menggabungkan Hapus BG & Ganti Warna) ---
+$('viewSpriteImg').addEventListener('click', (e) => {
+  if (!currentViewSprite) return;
+  
+  const img = $('viewSpriteImg');
+  const rect = img.getBoundingClientRect();
+  
+  // === MODE HAPUS BACKGROUND ===
+  if (S.bgRemoveActive && bgRemoveBaseData) {
+    const x = Math.min(bgRemoveBaseData.width-1, Math.max(0, Math.floor((e.clientX - rect.left) * (bgRemoveBaseData.width / rect.width))));
+    const y = Math.min(bgRemoveBaseData.height-1, Math.max(0, Math.floor((e.clientY - rect.top) * (bgRemoveBaseData.height / rect.height))));
+    const idx = (y * bgRemoveBaseData.width + x) * 4;
+    if (bgRemoveBaseData.data[idx+3] === 0) { toast('Area sudah transparan', 'error'); return; }
+    S.bgTargetRGBA = [bgRemoveBaseData.data[idx], bgRemoveBaseData.data[idx+1], bgRemoveBaseData.data[idx+2]];
+    applyBgRemove();
+    return;
+  }
+  
+  // === MODE GANTI WARNA ===
+  if (colorReplaceActive && colorBaseData) {
+    const x = Math.floor((e.clientX - rect.left) * (colorBaseData.width / rect.width));
+    const y = Math.floor((e.clientY - rect.top) * (colorBaseData.height / rect.height));
+    
+    const tol = +$('colorTolerance').value;
+    const mask = getFloodFillMask(colorBaseData, x, y, tol);
+    
+    if (!mask) { toast('Area transparan tidak bisa diwarnai', 'error'); return; }
+    if (colorReplacements.some(op => op.startX === x && op.startY === y)) {
+      toast('Area ini sudah ada di daftar', 'error'); return;
+    }
+    
+    const startIdx = (y * colorBaseData.width + x) * 4;
+    const sR = colorBaseData.data[startIdx], sG = colorBaseData.data[startIdx+1], sB = colorBaseData.data[startIdx+2];
+    
+    colorReplacements.push({
+      startX: x, startY: y, mask: mask,
+      targetR: 255 - sR, targetG: 255 - sG, targetB: 255 - sB, targetA: 255
+    });
+    
+    activeColorOpIndex = colorReplacements.length - 1;
+    renderColorReplaceList();
+    applyAllColorReplacements();
+    openPickerForOp(colorReplacements[activeColorOpIndex], activeColorOpIndex);
+    toast('Area terpilih! Geser slider untuk ubah warna.', 'success');
+  }
+});
+
+/* ============================================================
+   IMPORT JSON (Universal)
+   ============================================================ */
+$('btnImportJson').addEventListener('click', () => {
+  $('fileImportJson').value = '';
+  $('fileImportJson').click();
+});
+
+$('fileImportJson').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    await importJsonData(data);
+  } catch(err) {
+    toast('Error: ' + err.message, 'error');
+  }
+});
+
+async function importJsonData(data) {
+  let imageDataUrl = null;
+  if (typeof data.image === 'string' && data.image.startsWith('data:')) {
+    imageDataUrl = data.image;
+  }
+
+  const frames = [];
+  if (data.frames) {
+    if (Array.isArray(data.frames)) {
+      data.frames.forEach(f => frames.push({ name: f.name || 'sprite', x: f.x, y: f.y, w: f.w, h: f.h }));
+    } else {
+      for (const key in data.frames) {
+        const f = data.frames[key];
+        if (f.frame) {
+          frames.push({ name: key, x: f.frame.x, y: f.frame.y, w: f.frame.w, h: f.frame.h });
+        } else {
+          frames.push({ name: key, x: f.x, y: f.y, w: f.w, h: f.h });
+        }
+      }
+    }
+  }
+
+  if (frames.length === 0) { toast('Tidak ada frames di JSON', 'error'); return; }
+
+  let imgSrc = imageDataUrl;
+  if (!imgSrc) {
+    const src = getActiveSource();
+    if (!src) { toast('JSON tanpa base64. Load PNG spritesheet dulu sebagai source.', 'error'); return; }
+    imgSrc = src.dataUrl;
+  }
+
+  const sheetImg = new Image();
+  await new Promise((res, rej) => {
+    sheetImg.onload = res;
+    sheetImg.onerror = rej;
+    sheetImg.src = imgSrc;
+  });
+
+  let count = 0;
+  for (const f of frames) {
+    const c = document.createElement('canvas');
+    c.width = f.w; c.height = f.h;
+    const cx = c.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(sheetImg, f.x, f.y, f.w, f.h, 0, 0, f.w, f.h);
+    const dataUrl = c.toDataURL('image/png');
+    const spriteImg = new Image();
+    await new Promise(res => { spriteImg.onload = res; spriteImg.src = dataUrl; });
+
+    let fname = f.name;
+    let n = 1;
+    while (S.sprites.some(s => s.name === fname)) fname = f.name + '_' + n++;
+
+    S.sprites.push({
+      id: S.nextSpriteId++, name: fname,
+      dataUrl, img: spriteImg,
+      w: f.w, h: f.h,
+      coord: { x: f.x, y: f.y, w: f.w, h: f.h }
+    });
+    count++;
+  }
+
+  if (data.animations) {
+    for (const animName in data.animations) {
+      const a = data.animations[animName];
+      const frameIds = (a.frames || []).map(fn => {
+        const sp = S.sprites.find(s => s.name === fn);
+        return sp ? sp.id : null;
+      }).filter(Boolean);
+      if (frameIds.length > 0) {
+        S.animations.push({ id: S.nextAnimId++, name: animName, frames: frameIds, fps: a.fps || 8 });
+      }
+    }
+  }
+
+  renderLibrary();
+  if (S.currentTab === 'animate') renderAnimUI();
+  toast(`✅ ${count} sprite diimport!`, 'success');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+renderLibrary();
+setMode('crop');
+setStatus('Siap. Load gambar untuk mulai.');
+
+/* ============================================================
+   PWA SERVICE WORKER REGISTRATION
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then((reg) => {
+        console.log('✅ Service Worker terdaftar:', reg.scope);
+      })
+      .catch((err) => {
+        console.warn('❌ Service Worker gagal:', err);
+      });
+  });
+}
+</script>
+</body>
+  </html>
