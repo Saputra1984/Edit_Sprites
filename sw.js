@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sprite-editor-v1';
+const CACHE_NAME = 'sprite-editor-v2';
 const ASSETS = [
   './',
   './index.html',
